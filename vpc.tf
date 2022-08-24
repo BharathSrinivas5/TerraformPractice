@@ -25,60 +25,34 @@ module "vpc" {
   one_nat_gateway_per_az = false
   enable_vpn_gateway = true
 }
-  
-locals {
-   ingress_rules = [{
-      port        = 443
-      description = "Ingress rules for port 443"
-   },
-   {
-      port        = 80
-      description = "Ingree rules for port 80"
-   }]
+variable "sg_ports" {
+  type        = list(number)
+  description = "list of ingress ports"
+  default     = [80,443]
 }
 
-resource "aws_security_group" "main" {
-   name   = "resource_with_dynamic_block"
-   vpc_id = module.vpc.vpc_id
+resource "aws_security_group" "dynamicsg" {
+  name        = "dynamic-sg"
+  description = "Ingress for Vault"
 
-   dynamic "ingress" {
-      for_each = local.ingress_rules
+  dynamic "ingress" {
+    for_each = var.sg_ports
+    iterator = port
+    content {
+      from_port   = port.value
+      to_port     = port.value
+      protocol    = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
+  }
 
-      content {
-         description = ingress.value.description
-         from_port   = ingress.value.port
-         to_port     = ingress.value.port
-         protocol    = "tcp"
-         cidr_blocks = ["0.0.0.0/0"]
-      }
-   }
-
-   tags = {
-      Name = "AWS security group dynamic block"
-   }
-}
-locals {
-   egress_rules = [{
-      port        = 0
-   }]
-}
-
-resource "aws_security_group" "main2" {
-   name   = "resource_with_dynamic_block"
-   vpc_id = module.vpc.vpc_id
-
-   dynamic "egress" {
-      for_each = local.egress_rules
-
-      content {
-         from_port   = egress.value.port
-         to_port     = egress.value.port
-         protocol    = "tcp"
-         cidr_blocks = ["0.0.0.0/0"]
-      }
-   }
-
-   tags = {
-      Name = "AWS security group dynamic block egress"
-   }
+  dynamic "egress" {
+    for_each = var.sg_ports
+    content {
+      from_port   = egress.value
+      to_port     = egress.value
+      protocol    = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
+  }
 }
