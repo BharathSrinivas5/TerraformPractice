@@ -34,7 +34,7 @@ variable "sg_ports" {
 resource "aws_security_group" "dynamicsg" {
   name        = "dynamic-sg"
   description = "Ingress for Vault"
-
+  vpc_id      = module.vpc.vpc_id
   dynamic "ingress" {
     for_each = var.sg_ports
     iterator = port
